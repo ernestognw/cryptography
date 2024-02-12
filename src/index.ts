@@ -6,6 +6,9 @@ import decipher from "./decipher";
 import hash from "./hash";
 import hmac from "./hmac";
 import diffieHellman from "./diffie-hellman";
+import keypair from "./keypair";
+import sign from "./sign";
+import verify from "./verify";
 
 const encodings = [
   "ascii",
@@ -118,10 +121,11 @@ yargs(process.argv.slice(2))
         description: "The size of the key",
         default: 128,
       },
-      input: Object.assign(input, { description: "The file to encrypt" }),
-      output: Object.assign(output, {
+      input: { ...input, description: "The file to encrypt" },
+      output: {
+        ...input,
         description: "The file to output the encrypted file to",
-      }),
+      },
     },
   })
   .command({
@@ -145,10 +149,11 @@ yargs(process.argv.slice(2))
         description: "The size of the key",
         default: 128,
       },
-      input: Object.assign(input, { description: "The file to decrypt" }),
-      output: Object.assign(output, {
+      input: { ...input, description: "The file to decrypt" },
+      output: {
+        ...input,
         description: "The file to output the descrypted file to",
-      }),
+      },
     },
   })
   .command({
@@ -164,7 +169,7 @@ yargs(process.argv.slice(2))
         type: "string",
         default: "sha256",
       },
-      input: Object.assign(input, { description: "The file to hash" }),
+      input: { ...input, description: "The file to hash" },
       encoding,
     },
   })
@@ -181,7 +186,7 @@ yargs(process.argv.slice(2))
         type: "string",
         default: "sha256",
       },
-      input: Object.assign(input, { description: "The file to hmac" }),
+      input: { ...input, description: "The file to hmac" },
       key: {
         alias: "k",
         description: "The key to use",
@@ -237,42 +242,157 @@ yargs(process.argv.slice(2))
           "generatorEncoding",
         ],
       },
-      publicKeyEncoding: Object.assign(encoding, {
+      publicKeyEncoding: {
+        ...input,
         alias: "pube",
         description: "Other's public key encoding",
         default: "hex",
-      }),
+      },
       privateKey: {
         alias: "priv",
         description: "Own private key",
         type: "string",
       },
-      privateKeyEncoding: Object.assign(encoding, {
+      privateKeyEncoding: {
+        ...input,
         alias: "prive",
         description: "Own private key encoding",
         default: "hex",
-      }),
+      },
       prime: {
         alias: "p",
         description: "The prime number",
         type: "string",
       },
-      primeEncoding: Object.assign(encoding, {
+      primeEncoding: {
+        ...input,
         alias: "pe",
         description: "Prime number encoding",
         default: "hex",
-      }),
+      },
       generator: {
         alias: "g",
         description: "The generator",
         type: "string",
       },
-      generatorEncoding: Object.assign(encoding, {
+      generatorEncoding: {
+        ...input,
         alias: "ge",
         description: "Generator encoding",
         default: "hex",
-      }),
+      },
       encoding,
+    },
+  })
+  .command({
+    command: "keypair",
+    describe: "Generate an assymetric key pair",
+    handler: ({ type, size, passphrase, outDir, outFormat, modulusLength }) => {
+      keypair(type, size, passphrase, outDir, outFormat, modulusLength);
+    },
+    builder: {
+      type: {
+        choices: ["rsa", "rsa-pss"] as const,
+        description: "The type of key pair to generate",
+        demandOption: true,
+      },
+      size: {
+        choices: [128, 192, 256] as const,
+        description: "The size of the passphrase",
+        default: 128,
+      },
+      passphrase: {
+        alias: "p",
+        description: "The passphrase to encrypt the private key with",
+        type: "string",
+        demandOption: true,
+      },
+      outDir: {
+        alias: "o",
+        description: "The directory to output the keys to",
+        type: "string",
+        default: "./.secrets",
+      },
+      outFormat: {
+        alias: "f",
+        description: "The format to output the keys in",
+        choices: ["pem", "der"] as const,
+        default: "pem",
+      },
+      modulusLength: {
+        alias: "m",
+        description: "The modulus length",
+        choices: [2048, 3072, 4096] as const,
+        default: 2048,
+      },
+    },
+  })
+  .command({
+    command: "sign",
+    describe: "Sign a file",
+    handler: ({ algorithm, input, privateKey, encoding, passphrase }) => {
+      console.log(sign(algorithm, input, privateKey, encoding, passphrase));
+    },
+    builder: {
+      algorithm: {
+        alias: "a",
+        description: "The algorithm to use",
+        type: "string",
+        default: "RSA-SHA256",
+      },
+      input: { ...input, description: "The file to sign" },
+      privateKey: {
+        ...input,
+        alias: "priv",
+        description: "The private key to sign with",
+      },
+      encoding,
+      passphrase: {
+        alias: "p",
+        description: "The passphrase to decrypt the private key",
+        type: "string",
+      },
+    },
+  })
+  .command({
+    command: "verify",
+    describe: "Verify a signature for a given file",
+    handler: ({
+      algorithm,
+      input,
+      publicKey,
+      signature,
+      signatureEncoding,
+    }) => {
+      console.log(
+        verify(algorithm, input, publicKey, signature, signatureEncoding)
+      );
+    },
+    builder: {
+      algorithm: {
+        alias: "a",
+        description: "The algorithm to use",
+        type: "string",
+        default: "RSA-SHA256",
+      },
+      input: { ...input, description: "The file to verify" },
+      publicKey: {
+        ...input,
+        alias: "pub",
+        description: "The public key to verify against",
+      },
+      signature: {
+        alias: "s",
+        description: "The signature to verify",
+        type: "string",
+        demandOption: true,
+      },
+      signatureEncoding: {
+        ...input,
+        alias: "se",
+        description: "The signature encoding",
+        default: "hex",
+      },
     },
   })
   .demandCommand(1, "You need at least one command before moving on")
