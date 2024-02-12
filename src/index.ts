@@ -5,6 +5,7 @@ import cipher from "./cipher";
 import decipher from "./decipher";
 import hash from "./hash";
 import hmac from "./hmac";
+import diffieHellman from "./diffie-hellman";
 
 const encodings = [
   "ascii",
@@ -187,6 +188,90 @@ yargs(process.argv.slice(2))
         type: "string",
         demandOption: true,
       },
+    },
+  })
+  .command({
+    command: "diffie-hellman",
+    describe:
+      "Compute keys for diffie-hellman exchange or compute secret from keys if provided",
+    aliases: ["dh"],
+    handler: ({
+      publicKey,
+      publicKeyEncoding,
+      encoding,
+      prime,
+      generator,
+      primeEncoding,
+      generatorEncoding,
+      privateKey,
+      privateKeyEncoding,
+    }) => {
+      console.log(
+        diffieHellman(
+          encoding,
+          publicKey && {
+            publicKey,
+            publicKeyEncoding,
+            prime,
+            primeEncoding,
+            generator,
+            generatorEncoding,
+            privateKey,
+            privateKeyEncoding,
+          }
+        )
+      );
+    },
+    builder: {
+      publicKey: {
+        alias: "pub",
+        description: "The other's public key",
+        type: "string",
+        implies: [
+          "publicKeyEncoding",
+          "privateKey",
+          "privateKeyEncoding",
+          "prime",
+          "primeEncoding",
+          "generator",
+          "generatorEncoding",
+        ],
+      },
+      publicKeyEncoding: Object.assign(encoding, {
+        alias: "pube",
+        description: "Other's public key encoding",
+        default: "hex",
+      }),
+      privateKey: {
+        alias: "priv",
+        description: "Own private key",
+        type: "string",
+      },
+      privateKeyEncoding: Object.assign(encoding, {
+        alias: "prive",
+        description: "Own private key encoding",
+        default: "hex",
+      }),
+      prime: {
+        alias: "p",
+        description: "The prime number",
+        type: "string",
+      },
+      primeEncoding: Object.assign(encoding, {
+        alias: "pe",
+        description: "Prime number encoding",
+        default: "hex",
+      }),
+      generator: {
+        alias: "g",
+        description: "The generator",
+        type: "string",
+      },
+      generatorEncoding: Object.assign(encoding, {
+        alias: "ge",
+        description: "Generator encoding",
+        default: "hex",
+      }),
       encoding,
     },
   })
