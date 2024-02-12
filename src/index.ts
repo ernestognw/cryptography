@@ -3,6 +3,8 @@ import prng from "./prng";
 import scrypt from "./scrypt";
 import cipher from "./cipher";
 import decipher from "./decipher";
+import hash from "./hash";
+import hmac from "./hmac";
 
 const encodings = [
   "ascii",
@@ -24,7 +26,19 @@ const encoding = {
   description: "The encoding to output",
   choices: encodings,
   default: "hex",
-};
+} as const;
+
+const input = {
+  alias: "i",
+  type: "string",
+  demandOption: true,
+} as const;
+
+const output = {
+  alias: "o",
+  type: "string",
+  demandOption: true,
+} as const;
 
 yargs(process.argv.slice(2))
   .command({
@@ -86,9 +100,8 @@ yargs(process.argv.slice(2))
   .command({
     command: "cipher",
     describe: "Encrypt a file",
-    handler: ({ password, salt, size, input, output }) => {
-      cipher(password, salt, size, input, output);
-    },
+    handler: ({ password, salt, size, input, output }) =>
+      cipher(password, salt, size, input, output),
     builder: {
       password: {
         alias: "p",
@@ -104,18 +117,10 @@ yargs(process.argv.slice(2))
         description: "The size of the key",
         default: 128,
       },
-      input: {
-        alias: "i",
-        description: "The file to encrypt",
-        type: "string",
-        demandOption: true,
-      },
-      output: {
-        alias: "o",
+      input: Object.assign(input, { description: "The file to encrypt" }),
+      output: Object.assign(output, {
         description: "The file to output the encrypted file to",
-        type: "string",
-        demandOption: true,
-      },
+      }),
     },
   })
   .command({
@@ -139,18 +144,50 @@ yargs(process.argv.slice(2))
         description: "The size of the key",
         default: 128,
       },
-      input: {
-        alias: "i",
-        description: "The file to decrypt",
+      input: Object.assign(input, { description: "The file to decrypt" }),
+      output: Object.assign(output, {
+        description: "The file to output the descrypted file to",
+      }),
+    },
+  })
+  .command({
+    command: "hash",
+    describe: "Hash a file",
+    handler: ({ algorithm, encoding, input }) => {
+      console.log(hash(algorithm, encoding, input));
+    },
+    builder: {
+      algorithm: {
+        alias: "a",
+        description: "The algorithm to use",
+        type: "string",
+        default: "sha256",
+      },
+      input: Object.assign(input, { description: "The file to hash" }),
+      encoding,
+    },
+  })
+  .command({
+    command: "hmac",
+    describe: "Generate an HMAC for a file",
+    handler: ({ algorithm, key, encoding, input }) => {
+      console.log(hmac(algorithm, key, encoding, input));
+    },
+    builder: {
+      algorithm: {
+        alias: "a",
+        description: "The algorithm to use",
+        type: "string",
+        default: "sha256",
+      },
+      input: Object.assign(input, { description: "The file to hmac" }),
+      key: {
+        alias: "k",
+        description: "The key to use",
         type: "string",
         demandOption: true,
       },
-      output: {
-        alias: "o",
-        description: "The file to output the decrypted file to",
-        type: "string",
-        demandOption: true,
-      },
+      encoding,
     },
   })
   .demandCommand(1, "You need at least one command before moving on")
